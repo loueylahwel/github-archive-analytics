@@ -1,10 +1,10 @@
-# 🔭 GitHub Archive Trend & Virality Analytics Platform
+# GitHub Archive Trend & Virality Analytics Platform
 
 > A fully open-source, locally runnable analytics platform that ingests raw [GH Archive](https://www.gharchive.org/) data, processes it through a **Bronze → Silver → Gold** Medallion Architecture built on **Apache Iceberg** and **Apache Spark**, and surfaces viral repository rankings, tech-stack ecosystem trends, and macro GitHub platform statistics.
 
 ---
 
-## 📸 Results Preview
+## Results Preview
 
 ```
 Top Viral Repositories — Week of Jan 15, 2024
@@ -25,7 +25,7 @@ Top Viral Repositories — Week of Jan 15, 2024
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | Details |
 |---|---|
@@ -40,7 +40,7 @@ Top Viral Repositories — Week of Jan 15, 2024
 
 ---
 
-## 🧱 Architecture
+## Architecture
 
 ```
 GH Archive (.json.gz)
@@ -68,7 +68,7 @@ GH Archive (.json.gz)
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 github-archive-analytics/
@@ -94,7 +94,7 @@ github-archive-analytics/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -219,7 +219,7 @@ python main.py --action show-viral --window month
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 All settings live in `config/config.yaml`:
 
@@ -239,7 +239,7 @@ virality:
 
 ---
 
-## 📋 CLI Reference
+## CLI Reference
 
 ```
 python main.py --action <ACTION> [OPTIONS]
@@ -300,7 +300,7 @@ The notebook covers:
 
 ---
 
-## 🧑‍💻 Iceberg SQL Reference
+## Iceberg SQL Reference
 
 Connect via the notebook or query directly in Python:
 
@@ -373,7 +373,7 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-> ⚠️ `docker-compose down -v` deletes all stored data including Bronze S3 files. After a full reset, the pipeline will re-download GH Archive files on the next run.
+> `docker-compose down -v` deletes all stored data including Bronze S3 files. After a full reset, the pipeline will re-download GH Archive files on the next run.
 
 ### `HADOOP_HOME` error on Windows
 ```
@@ -418,7 +418,7 @@ These are harmless Windows file-locking warnings on Spark shutdown. They do not 
 
 ---
 
-## 🏗️ Technology Stack
+## Technology Stack
 
 | Component | Technology |
 |---|---|
@@ -432,7 +432,7 @@ These are harmless Windows file-locking warnings on Spark shutdown. They do not 
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 ```
 pyspark==3.5.1          # Distributed processing
@@ -449,12 +449,12 @@ jupyter / notebook      # Analysis notebook
 
 ---
 
-## 📜 License
+## License
 
 Apache 2.0 — free for commercial and personal use.
 
 ---
 
-## 🙏 Data Source
+## Data Source
 
 All data comes from [GH Archive](https://www.gharchive.org/) — a project that records the public GitHub timeline and makes it available for analysis. Data is available from 2011 onwards, updated hourly.
