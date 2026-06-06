@@ -1,0 +1,96 @@
+# =============================================================================
+# GitHub Archive Trend & Virality Analytics Platform
+# Central Configuration
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# AWS / S3 (LocalStack)
+# ---------------------------------------------------------------------------
+aws:
+  endpoint_url: "http://localhost:4566"    # LocalStack endpoint (host machine)
+  endpoint_url_docker: "http://localstack:4566"  # When running inside Docker
+  region: "us-east-1"
+  access_key_id: "test"
+  secret_access_key: "test"
+  bucket: "github-archive-bucket"
+  path_style_access: true
+
+# ---------------------------------------------------------------------------
+# Iceberg REST Catalog
+# ---------------------------------------------------------------------------
+catalog:
+  name: "demo"
+  type: "rest"
+  uri: "http://localhost:8181"             # Host machine access
+  uri_docker: "http://iceberg-rest:8181"  # Docker internal access
+  warehouse: "s3a://github-archive-bucket/warehouse/"
+
+# ---------------------------------------------------------------------------
+# Spark
+# ---------------------------------------------------------------------------
+spark:
+  master: "local[*]"                       # Use local for standalone runs
+  master_docker: "spark://spark-master:7077"  # Use when inside Docker cluster
+  app_name: "GitHubArchiveAnalytics"
+  executor_memory: "2g"
+  driver_memory: "2g"
+  executor_cores: 2
+  log_level: "WARN"
+
+# ---------------------------------------------------------------------------
+# GH Archive Data Source
+# ---------------------------------------------------------------------------
+gharchive:
+  base_url: "https://data.gharchive.org"
+  # Hours to download per day (0–23). Use a subset for quick testing.
+  hours_per_day: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+  # For quick demo / testing, override with fewer hours:
+  # hours_per_day: [10, 11, 12]
+  download_timeout_seconds: 120
+  max_retries: 3
+  retry_backoff_seconds: 5
+
+# ---------------------------------------------------------------------------
+# Storage Paths (S3)
+# ---------------------------------------------------------------------------
+paths:
+  bronze: "s3a://github-archive-bucket/bronze/"
+  silver: "s3a://github-archive-bucket/silver/"
+  gold: "s3a://github-archive-bucket/gold/"
+  temp: "s3a://github-archive-bucket/temp/"
+
+# ---------------------------------------------------------------------------
+# Iceberg Tables
+# ---------------------------------------------------------------------------
+tables:
+  silver_events: "demo.silver.events"
+  gold_viral_repos: "demo.gold.viral_repos"
+  gold_tech_stack_trends: "demo.gold.tech_stack_trends"
+  gold_macro_stats: "demo.gold.macro_stats"
+
+# ---------------------------------------------------------------------------
+# Virality Engine
+# ---------------------------------------------------------------------------
+virality:
+  # Weights for the Virality Index formula:
+  # VI = (stars * star_weight) + (forks * fork_weight) + (prs * pr_weight) + (issues * issue_weight)
+  weights:
+    star: 4
+    fork: 3
+    pull_request: 2
+    issue: 1
+  # Window definitions (in days)
+  windows:
+    day: 1
+    week: 7
+    month: 30
+  # Minimum events for a repo to appear in viral rankings
+  min_events_threshold: 5
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s — %(message)s"
+  datefmt: "%Y-%m-%d %H:%M:%S"

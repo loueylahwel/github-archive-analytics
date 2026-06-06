@@ -1,0 +1,40 @@
+# =============================================================================
+# GitHub Archive Analytics — Python Dependencies
+# =============================================================================
+
+# Apache Spark / PySpark
+pyspark==3.5.1
+
+# Apache Iceberg Python library (catalog management helpers)
+pyiceberg[s3fs,pyarrow]==0.7.1
+
+# AWS S3 interaction (for Bronze layer downloads)
+boto3==1.34.69
+botocore==1.34.69
+
+# HTTP requests (GH Archive download)
+requests==2.31.0
+urllib3==2.2.1
+
+# Configuration management
+PyYAML==6.0.1
+
+# Data processing helpers
+pyarrow==15.0.2
+
+# Date/time utilities
+python-dateutil==2.9.0
+
+# Logging utilities
+colorlog==6.8.2
+
+# Jupyter for the analysis notebook
+jupyter==1.0.0
+notebook==7.1.3
+ipykernel==6.29.4
+
+# CLI progress bars
+tqdm==4.66.2
+
+# Retry logic
+tenacity==8.2.3

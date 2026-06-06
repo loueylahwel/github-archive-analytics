@@ -1,0 +1,40 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Spark temp files
+derby.log
+metastore_db/
+spark-warehouse/
+
+# Ivy / JAR cache
+.ivy2/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local data (don't commit downloaded GH Archive files)
+data/
+*.json.gz
+
+# Logs
+*.log
+logs/
