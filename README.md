@@ -359,7 +359,7 @@ spark.sql("CALL demo.system.expire_snapshots(table => 'demo.silver.events', reta
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Docker services not starting
 ```bash
