@@ -43,7 +43,7 @@ spark:
 gharchive:
   base_url: "https://data.gharchive.org"
   # Hours to download per day (0–23). Use a subset for quick testing.
-  hours_per_day: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+  hours_per_day: [10]
   # For quick demo / testing, override with fewer hours:
   # hours_per_day: [10, 11, 12]
   download_timeout_seconds: 120
