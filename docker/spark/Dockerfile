@@ -53,4 +53,9 @@ WORKDIR /opt/app
 # Allow running as non-root in Spark
 RUN chmod -R 777 /opt/spark/work-dir 2>/dev/null || true
 
+# Ensure the container user has a valid /etc/passwd entry so Hadoop's
+# UserGroupInformation can resolve the current user name.
+RUN groupadd -r analytics -g 1001 || true && \
+    useradd -r -g analytics -u 1001 -d /opt/spark/work-dir -s /bin/bash analytics || true
+
 USER 1001

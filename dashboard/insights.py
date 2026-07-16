@@ -5,7 +5,8 @@ Generates a short narrative briefing (4–6 bullet insights) about where the
 developer world is heading, from Gold-table markdown snippets + macro KPIs.
 
 Configuration via environment variables:
-    GROQ_API_KEY   — required; absence disables the feature gracefully
+    GROQ_API_KEY   — primary key
+    GROQ_API_KEYS  — optional comma-separated extra keys for rotation
     GROQ_MODEL     — default "llama-3.3-70b-versatile"
 
 The module never raises into the dashboard: any failure returns a friendly
@@ -14,6 +15,8 @@ fallback string instead.
 
 import logging
 import os
+import time
+from typing import List
 
 import streamlit as st
 
@@ -35,28 +38,52 @@ _SYSTEM_PROMPT = (
     "disclaimers, no caveats."
 )
 
-_client = None
-_client_key = None
+_clients: dict = {}
+_current_key_index: int = 0
 
 
 # ---------------------------------------------------------------------------
-# Lazy Groq client
+# Key pool
 # ---------------------------------------------------------------------------
 
-def _get_client():
-    """Create (and cache) the Groq client lazily, keyed to the current API key."""
-    global _client, _client_key
-    key = os.environ.get("GROQ_API_KEY", "")
-    if _client is None or _client_key != key:
+def _all_keys() -> List[str]:
+    """Return the primary key plus any comma-separated extra keys."""
+    keys = []
+    primary = os.environ.get("GROQ_API_KEY", "").strip()
+    if primary:
+        keys.append(primary)
+    extras = os.environ.get("GROQ_API_KEYS", "")
+    if extras:
+        keys.extend([k.strip() for k in extras.split(",") if k.strip()])
+    return keys
+
+
+def _next_key() -> str | None:
+    """Round-robin across the Groq key pool."""
+    global _current_key_index
+    keys = _all_keys()
+    if not keys:
+        return None
+    key = keys[_current_key_index % len(keys)]
+    _current_key_index = (_current_key_index + 1) % len(keys)
+    return key
+
+
+def _get_client(key: str):
+    """Create (and cache) a Groq client for a specific key."""
+    if key not in _clients:
         from groq import Groq
-        _client = Groq(api_key=key)
-        _client_key = key
-    return _client
+        _clients[key] = Groq(api_key=key)
+    return _clients[key]
 
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 def groq_available() -> bool:
-    """True when a Groq API key is set and the `groq` package is importable."""
-    if not os.environ.get("GROQ_API_KEY"):
+    """True when at least one Groq API key is set and the package is importable."""
+    if not _all_keys():
         return False
     try:
         import groq  # noqa: F401
@@ -95,17 +122,34 @@ def generate_orientation_summary(top_repos_md: str, language_delta_md: str, macr
     """Generate the AI briefing; cached on the exact input strings. Never raises."""
     if not groq_available():
         return FALLBACK_MESSAGE
-    try:
-        client = _get_client()
-        response = client.chat.completions.create(
-            model=os.environ.get("GROQ_MODEL", GROQ_MODEL_DEFAULT),
-            temperature=TEMPERATURE,
-            messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": _build_prompt(top_repos_md, language_delta_md, macro_dict)},
-            ],
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as exc:
-        logger.warning("Groq briefing failed: %s", exc)
-        return FALLBACK_MESSAGE
+
+    keys = _all_keys()
+    for attempt, key in enumerate(keys):
+        try:
+            client = _get_client(key)
+            response = client.chat.completions.create(
+                model=os.environ.get("GROQ_MODEL", GROQ_MODEL_DEFAULT),
+                temperature=TEMPERATURE,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": _build_prompt(top_repos_md, language_delta_md, macro_dict)},
+                ],
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as exc:
+            err_msg = str(exc).lower()
+            logger.warning("Groq briefing failed with key %d/%d: %s", attempt + 1, len(keys), exc)
+            # If rate-limited, try next key; otherwise abort.
+            if "rate_limit" in err_msg or "rate limit" in err_msg:
+                # Honor Retry-After if present.
+                retry_after = getattr(exc, "headers", {})
+                retry_after = retry_after.get("retry-after") if retry_after else None
+                if retry_after:
+                    try:
+                        time.sleep(max(float(retry_after), 0))
+                    except (TypeError, ValueError):
+                        pass
+                continue
+            break
+
+    return FALLBACK_MESSAGE

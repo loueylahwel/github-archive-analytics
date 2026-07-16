@@ -41,9 +41,9 @@ from demo_data import (
 
 CATALOG_NAME = "demo"
 
-GOLD_VIRAL_REPOS = "demo.gold.viral_repos"
-GOLD_TECH_TRENDS = "demo.gold.tech_stack_trends"
-GOLD_MACRO_STATS = "demo.gold.macro_stats"
+GOLD_VIRAL_REPOS = "gold.viral_repos"
+GOLD_TECH_TRENDS = "gold.tech_stack_trends"
+GOLD_MACRO_STATS = "gold.macro_stats"
 
 WINDOW_TYPES = ["day", "week", "month"]
 
