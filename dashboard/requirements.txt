@@ -1,0 +1,7 @@
+# Dev World Radar dashboard — Python dependencies
+streamlit
+plotly
+pandas
+groq
+pyiceberg[s3fs,pyarrow]==0.7.1
+pyarrow==15.0.2

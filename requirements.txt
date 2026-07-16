@@ -38,3 +38,9 @@ tqdm==4.66.2
 
 # Retry logic
 tenacity==8.2.3
+
+# Dev World Radar dashboard
+streamlit>=1.33
+plotly>=5.20
+pandas>=2.2
+groq>=0.9

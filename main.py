@@ -22,11 +22,15 @@ Usage examples
 
   # Docker mode (use Docker-internal service hostnames)
   python main.py --action run-analytics --start-date 2024-01-01 --end-date 2024-01-03 --docker
+
+  # Dev World Radar dashboard (Streamlit over the Gold tables, no Spark)
+  python main.py --action dashboard
 """
 
 import argparse
 import logging
 import os
+import subprocess
 import sys
 import time
 from datetime import date, datetime
@@ -211,6 +215,14 @@ def action_show_viral(args, cfg) -> None:
         spark.stop()
 
 
+def action_dashboard(args, cfg) -> None:
+    """Launch the Dev World Radar Streamlit dashboard."""
+    logger.info("=== DEV WORLD RADAR DASHBOARD ===")
+    subprocess.run(
+        [sys.executable, "-m", "streamlit", "run", os.path.join("dashboard", "app.py")]
+    )
+
+
 # ---------------------------------------------------------------------------
 # CLI parser
 # ---------------------------------------------------------------------------
@@ -234,6 +246,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "optimize",
             "list-bronze",
             "show-viral",
+            "dashboard",
         ],
         help="Pipeline action to execute.",
     )
@@ -310,6 +323,7 @@ def main() -> int:
         "optimize": action_optimize,
         "list-bronze": action_list_bronze,
         "show-viral": action_show_viral,
+        "dashboard": action_dashboard,
     }
 
     try:

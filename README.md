@@ -73,9 +73,15 @@ GH Archive (.json.gz)
 ```
 github-archive-analytics/
 ├── docker/
-│   ├── docker-compose.yml          # Full stack: LocalStack + Iceberg + Spark
+│   ├── docker-compose.yml          # Full stack: LocalStack + Iceberg + Spark + Dashboard
 │   └── spark/
 │       └── Dockerfile              # Spark 3.5 + Iceberg jars + Python deps
+├── dashboard/
+│   ├── app.py                      # Streamlit "Dev World Radar" dashboard
+│   ├── data_loader.py              # Gold tables via pyiceberg REST catalog (no Spark)
+│   ├── insights.py                 # Groq-powered AI analyst briefing
+│   ├── requirements.txt            # Dashboard-only dependencies
+│   └── Dockerfile                  # Dashboard image (python:3.11-slim)
 ├── config/
 │   └── config.yaml                 # All settings (endpoints, weights, hours, etc.)
 ├── src/
@@ -252,6 +258,7 @@ Actions:
   optimize        Run Iceberg table maintenance
   list-bronze     List files currently in S3 Bronze zone
   show-viral      Print top viral repos to console
+  dashboard       Launch the Dev World Radar dashboard (Streamlit)
 
 Options:
   --start-date    YYYY-MM-DD  (required for data actions)
@@ -297,6 +304,39 @@ The notebook covers:
 3. **Iceberg time-travel queries** — `VERSION AS OF` and `TIMESTAMP AS OF`
 4. **Event type distribution** — stacked area chart over time
 5. **Macro platform stats** — formatted summary card
+
+---
+
+## 📊 Dev World Radar Dashboard
+
+An interactive **Streamlit** dashboard that reads the **Gold Iceberg tables directly via pyiceberg's REST catalog client — no Spark required**.
+
+What it shows:
+
+- **🔥 Trending Repos** — Top-N viral repos per day/week/month window, with virality score, stars, forks, PRs, star velocity and active contributors (linked to GitHub).
+- **🧰 Tech Stack** — language market share (event share %), donut chart, and per-language stars/forks/contributors for the latest analysis date.
+- **🧭 Dev World Orientation** — momentum analysis: which languages are *rising* vs *cooling* between the two most recent analysis dates, the fastest-growing repos by star velocity, and an optional **AI Analyst briefing** powered by [Groq](https://groq.com/) (set `GROQ_API_KEY` or paste a key in the sidebar — the key is optional, everything else works without it).
+
+### Run locally
+
+```bash
+streamlit run dashboard/app.py
+# or via the CLI orchestrator:
+python main.py --action dashboard
+```
+
+Requires the Docker stack (LocalStack + Iceberg REST) to be running and at least one pipeline run to have completed. Then open http://localhost:8501.
+
+### Run in Docker
+
+The dashboard is part of the compose stack:
+
+```bash
+cd docker
+docker-compose up -d dashboard          # GROQ_API_KEY is passed through from the host env if set
+```
+
+Open http://localhost:8501. Code edits under `dashboard/` are reflected live — the repo root is mounted into the container.
 
 ---
 

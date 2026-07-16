@@ -132,3 +132,26 @@ services:
       - ../:/opt/app
       - iceberg-warehouse:/opt/iceberg-warehouse
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --webui-port 8081
+
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile
+    image: github-analytics-dashboard
+    container_name: dashboard
+    networks:
+      - analytics-net
+    ports:
+      - "8501:8501"
+    environment:
+      - CATALOG_URI=http://iceberg-rest:8181
+      - S3_ENDPOINT=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=us-east-1
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+    depends_on:
+      iceberg-rest:
+        condition: service_started
+    volumes:
+      - ../:/opt/app
