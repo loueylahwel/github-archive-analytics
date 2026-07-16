@@ -24,7 +24,7 @@ TEMPERATURE = 0.3
 MAX_INPUT_CHARS = 4000  # safety cap per input section (rows are pre-capped at 15)
 
 FALLBACK_MESSAGE = (
-    "🤖 The AI analyst is unavailable right now — check that `GROQ_API_KEY` "
+    "The AI analyst is unavailable right now — check that `GROQ_API_KEY` "
     "is set and the Groq API is reachable, then try again."
 )
 

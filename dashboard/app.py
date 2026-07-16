@@ -5,10 +5,10 @@ A Streamlit dashboard over the Gold Iceberg tables (demo.gold.*), read
 directly via pyiceberg's REST catalog client — no Spark required.
 
 Tabs:
-  🔥 Trending Repos        — virality rankings per day/week/month window
-  🧰 Tech Stack            — language market share for the latest analysis date
-  🧭 Dev World Orientation — momentum (rising/cooling languages), fastest-growing
-                             repos, and an optional Groq-powered AI briefing
+  Trending Repos        — virality rankings per day/week/month window
+  Tech Stack            — language market share for the latest analysis date
+  Dev World Orientation — momentum (rising/cooling languages), fastest-growing
+                          repos, and an optional Groq-powered AI briefing
 """
 
 import os
@@ -28,7 +28,31 @@ import insights
 # Page setup
 # ---------------------------------------------------------------------------
 
-st.set_page_config(page_title="Dev World Radar", page_icon="📡", layout="wide")
+st.set_page_config(page_title="Dev World Radar", layout="wide")
+
+st.markdown(
+    """
+    <style>
+        .block-container { padding-top: 1.5rem; }
+        .demo-banner {
+            background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        .demo-banner code {
+            background: #334155;
+            color: #f8fafc;
+            padding: 0.15rem 0.35rem;
+            border-radius: 0.25rem;
+        }
+        div[data-testid="stMetricValue"] { font-size: 1.6rem; font-weight: 700; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -80,8 +104,8 @@ def _macro_dict(macro: pd.DataFrame) -> dict:
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
-    st.header("📡 Dev World Radar")
-    st.caption("Where the dev world is heading — straight from the Gold Iceberg tables.")
+    st.header("Dev World Radar")
+    st.caption("Where the dev world is heading.")
 
     windows = data_loader.available_windows()
     window_type = st.selectbox(
@@ -89,13 +113,13 @@ with st.sidebar:
     )
     top_n = st.slider("Top N repos", min_value=5, max_value=30, value=10)
 
-    if st.button("🔄 Refresh data", use_container_width=True):
+    if st.button("Refresh data", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
 
     st.divider()
     if os.environ.get("GROQ_API_KEY"):
-        st.success("Groq key detected — AI briefing unlocked.", icon="🤖")
+        st.success("Groq key detected — AI briefing unlocked.")
     else:
         groq_key = st.text_input(
             "Groq API key (optional — unlocks the AI briefing)", type="password"
@@ -105,16 +129,15 @@ with st.sidebar:
 
 
 # ---------------------------------------------------------------------------
-# Empty state — stack unreachable or no Gold data yet
+# Empty state — stack unreachable and demo data disabled
 # ---------------------------------------------------------------------------
 
 if not data_loader.data_available():
-    st.title("📡 Dev World Radar")
+    st.title("Dev World Radar")
     st.warning(
-        "Can't reach the analytics stack — or no Gold data has been produced yet.\n\n"
+        "Can't reach the analytics stack and no demo data is available.\n\n"
         "The dashboard reads the Iceberg Gold tables through the REST catalog "
-        "(default `http://localhost:8181`) backed by LocalStack S3.",
-        icon="🛰️",
+        "(default `http://localhost:8181`) backed by LocalStack S3."
     )
     st.markdown("**Start the stack, then run the pipeline:**")
     st.code(
@@ -122,7 +145,7 @@ if not data_loader.data_available():
         "python main.py --action run-analytics --start-date 2024-01-15 --end-date 2024-01-15",
         language="bash",
     )
-    if st.button("🔁 Retry", type="primary"):
+    if st.button("Retry", type="primary"):
         st.rerun()
     st.stop()
 
@@ -134,9 +157,19 @@ if not data_loader.data_available():
 macro = data_loader.load_macro_stats()
 viral = data_loader.load_viral_repos(window_type)
 trends = data_loader.load_tech_trends()
+is_demo = data_loader.demo_mode()
 
-st.title("📡 Dev World Radar")
-st.caption("Live from the Gold Iceberg tables via pyiceberg — no Spark involved.")
+st.title("Dev World Radar")
+if is_demo:
+    st.markdown(
+        '<div class="demo-banner">'
+        'Demo mode: showing realistic sample data. '
+        'Run the pipeline to replace this with live GitHub Archive results.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+else:
+    st.caption("Live from the Gold Iceberg tables via pyiceberg — no Spark involved.")
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +205,7 @@ if not macro.empty:
 # ---------------------------------------------------------------------------
 
 tab_repos, tab_stack, tab_orientation = st.tabs(
-    ["🔥 Trending Repos", "🧰 Tech Stack", "🧭 Dev World Orientation"]
+    ["Trending Repos", "Tech Stack", "Dev World Orientation"]
 )
 
 
@@ -211,8 +244,8 @@ with tab_repos:
             column_config={
                 "repo_url": _repo_link_column(),
                 "virality_score": st.column_config.NumberColumn("Virality", format="%.0f"),
-                "star_count": st.column_config.NumberColumn("⭐ Stars", format="%d"),
-                "fork_count": st.column_config.NumberColumn("🍴 Forks", format="%d"),
+                "star_count": st.column_config.NumberColumn("Stars", format="%d"),
+                "fork_count": st.column_config.NumberColumn("Forks", format="%d"),
                 "pr_opened_count": st.column_config.NumberColumn("PRs", format="%d"),
                 "star_velocity": st.column_config.NumberColumn("Stars/day", format="%.1f"),
                 "active_contributors": st.column_config.NumberColumn("Contributors", format="%d"),
@@ -259,8 +292,8 @@ with tab_stack:
             ]],
             column_config={
                 "repo_language": "Language",
-                "total_stars": st.column_config.NumberColumn("⭐ Stars", format="%d"),
-                "total_forks": st.column_config.NumberColumn("🍴 Forks", format="%d"),
+                "total_stars": st.column_config.NumberColumn("Stars", format="%d"),
+                "total_forks": st.column_config.NumberColumn("Forks", format="%d"),
                 "total_prs": st.column_config.NumberColumn("PRs", format="%d"),
                 "distinct_repos": st.column_config.NumberColumn("Repos", format="%d"),
                 "distinct_contributors": st.column_config.NumberColumn("Contributors", format="%d"),
@@ -282,8 +315,7 @@ with tab_orientation:
     if len(dates) < 2:
         st.info(
             "Momentum analysis needs at least two analysis dates in "
-            "`demo.gold.tech_stack_trends` — run the pipeline for more days.",
-            icon="🧭",
+            "`demo.gold.tech_stack_trends` — run the pipeline for more days."
         )
     else:
         prev_date, latest_date = dates[-2], dates[-1]
@@ -304,7 +336,7 @@ with tab_orientation:
 
         rise_col, cool_col = st.columns(2)
         with rise_col:
-            st.markdown("##### 📈 Rising")
+            st.markdown("##### Rising")
             if rising.empty:
                 st.caption("No languages gained share in this period.")
             else:
@@ -317,7 +349,7 @@ with tab_orientation:
                 fig.update_layout(height=max(300, 32 * len(rising)))
                 st.plotly_chart(fig, use_container_width=True)
         with cool_col:
-            st.markdown("##### 📉 Cooling")
+            st.markdown("##### Cooling")
             if cooling.empty:
                 st.caption("No languages lost share in this period.")
             else:
@@ -333,7 +365,7 @@ with tab_orientation:
     st.divider()
 
     # ---- Fastest growing repos (star velocity in the latest viral window) ----
-    st.subheader(f"🚀 Fastest growing repos — latest '{window_type}' window")
+    st.subheader(f"Fastest growing repos — latest '{window_type}' window")
     if viral.empty:
         st.info(f"No viral repo data for the '{window_type}' window yet.")
     else:
@@ -353,7 +385,7 @@ with tab_orientation:
                 "repo_url": _repo_link_column(),
                 "star_velocity": st.column_config.NumberColumn("Stars/day", format="%.1f"),
                 "fork_velocity": st.column_config.NumberColumn("Forks/day", format="%.1f"),
-                "star_count": st.column_config.NumberColumn("⭐ Stars", format="%d"),
+                "star_count": st.column_config.NumberColumn("Stars", format="%d"),
                 "virality_score": st.column_config.NumberColumn("Virality", format="%.0f"),
                 "rank_in_window": st.column_config.NumberColumn("Rank", format="%d"),
             },
@@ -364,10 +396,10 @@ with tab_orientation:
     st.divider()
 
     # ---- AI Analyst briefing (Groq, optional) ----
-    st.subheader("🤖 AI Analyst briefing")
+    st.subheader("AI Analyst briefing")
     if insights.groq_available():
-        if st.button("✨ Generate AI briefing", type="primary"):
-            with st.spinner("The AI analyst is reading the radar…"):
+        if st.button("Generate AI briefing", type="primary"):
+            with st.spinner("The AI analyst is reading the radar..."):
                 if viral.empty:
                     top_repos_md = "(no data)"
                 else:
@@ -391,6 +423,5 @@ with tab_orientation:
     else:
         st.info(
             "Set `GROQ_API_KEY` (environment variable or the sidebar input) to unlock "
-            "the AI briefing — everything else works without it.",
-            icon="🔑",
+            "the AI briefing — everything else works without it."
         )

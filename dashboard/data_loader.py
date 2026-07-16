@@ -26,6 +26,15 @@ from pyiceberg.catalog import load_catalog
 
 logger = logging.getLogger(__name__)
 
+# Fallback sample data when the Iceberg stack has no Gold tables yet.
+from demo_data import (
+    data_available as _demo_data_available,
+    available_windows as _demo_available_windows,
+    load_viral_repos as _demo_load_viral_repos,
+    load_tech_trends as _demo_load_tech_trends,
+    load_macro_stats as _demo_load_macro_stats,
+)
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -80,12 +89,34 @@ def _load(table_name: str) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Demo-mode detection
+# ---------------------------------------------------------------------------
+
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
+def _iceberg_has_data() -> bool:
+    """True when at least one real Gold Iceberg table exists and is non-empty."""
+    if not _load(GOLD_TECH_TRENDS).empty or not _load(GOLD_MACRO_STATS).empty:
+        return True
+    viral_df = _load(GOLD_VIRAL_REPOS)
+    if viral_df.empty or "window_type" not in viral_df.columns:
+        return False
+    return any(not viral_df[viral_df["window_type"] == w].empty for w in WINDOW_TYPES)
+
+
+def demo_mode() -> bool:
+    """True when the dashboard is rendering generated sample data."""
+    return not _iceberg_has_data()
+
+
+# ---------------------------------------------------------------------------
 # Public cached loaders
 # ---------------------------------------------------------------------------
 
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_viral_repos(window_type: str = "week") -> pd.DataFrame:
     """Viral repo rankings for one window type, latest window first."""
+    if demo_mode():
+        return _demo_load_viral_repos(window_type)
     df = _load(GOLD_VIRAL_REPOS)
     if df.empty:
         return df
@@ -98,6 +129,8 @@ def load_viral_repos(window_type: str = "week") -> pd.DataFrame:
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_tech_trends() -> pd.DataFrame:
     """Tech stack trends, latest analysis date first, ranked by language."""
+    if demo_mode():
+        return _demo_load_tech_trends()
     df = _load(GOLD_TECH_TRENDS)
     if df.empty:
         return df
@@ -109,6 +142,8 @@ def load_tech_trends() -> pd.DataFrame:
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_macro_stats() -> pd.DataFrame:
     """Macro platform stats, ascending by analysis date (latest row last)."""
+    if demo_mode():
+        return _demo_load_macro_stats()
     df = _load(GOLD_MACRO_STATS)
     if df.empty:
         return df
@@ -122,6 +157,8 @@ def load_macro_stats() -> pd.DataFrame:
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def available_windows() -> list:
     """Window types actually present in the viral table (falls back to all three)."""
+    if demo_mode():
+        return _demo_available_windows()
     df = _load(GOLD_VIRAL_REPOS)
     if df.empty or "window_type" not in df.columns:
         return list(WINDOW_TYPES)
@@ -130,7 +167,9 @@ def available_windows() -> list:
 
 
 def data_available() -> bool:
-    """True when at least one Gold table is reachable and non-empty."""
+    """True when at least one Gold table is reachable, non-empty, or demo data is enabled."""
+    if _demo_data_available():
+        return True
     if not load_tech_trends().empty or not load_macro_stats().empty:
         return True
     return any(not load_viral_repos(w).empty for w in WINDOW_TYPES)
