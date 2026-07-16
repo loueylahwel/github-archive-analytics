@@ -16,6 +16,7 @@ import sys
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 # Allow running both via `streamlit run dashboard/app.py` and as a package import
@@ -28,27 +29,112 @@ import insights
 # Page setup
 # ---------------------------------------------------------------------------
 
-st.set_page_config(page_title="Dev World Radar", layout="wide")
+st.set_page_config(page_title="Dev World Radar", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown(
     """
     <style>
-        .block-container { padding-top: 1.5rem; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .block-container {
+            padding-top: 1rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+            max-width: 1400px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+            border-radius: 1rem;
+            padding: 1.75rem 2rem;
+            margin-bottom: 1.25rem;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.5);
+        }
+
+        .hero h1 {
+            color: #f8fafc;
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0 0 0.35rem 0;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            color: #a5b4fc;
+            margin: 0;
+            font-size: 1rem;
+        }
+
         .demo-banner {
-            background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            color: #c7d2fe;
             padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.25rem;
             font-size: 0.9rem;
         }
-        .demo-banner code {
-            background: #334155;
-            color: #f8fafc;
-            padding: 0.15rem 0.35rem;
-            border-radius: 0.25rem;
+
+        .kpi-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 0.875rem;
+            padding: 1.1rem 1.25rem;
+            backdrop-filter: blur(8px);
         }
-        div[data-testid="stMetricValue"] { font-size: 1.6rem; font-weight: 700; }
+
+        .kpi-label {
+            color: #94a3b8;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.4rem;
+        }
+
+        .kpi-value {
+            color: #f8fafc;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .kpi-delta {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        div[data-testid="stTabs"] button[role="tab"] {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #94a3b8;
+            padding: 0.75rem 1.25rem;
+        }
+
+        div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+            color: #c7d2fe;
+            background: rgba(99, 102, 241, 0.12);
+            border-radius: 0.625rem 0.625rem 0 0;
+        }
+
+        div[data-testid="stExpander"] {
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 0.75rem;
+            background: rgba(30, 41, 59, 0.4);
+        }
+
+        .stButton>button {
+            border-radius: 0.625rem;
+            font-weight: 600;
+        }
+
+        footer { visibility: hidden; }
+        header { visibility: hidden; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -99,12 +185,31 @@ def _macro_dict(macro: pd.DataFrame) -> dict:
     return out
 
 
+def _kpi_card(label, value, delta=None, delta_suffix=""):
+    delta_html = ""
+    if delta is not None:
+        color = "#34d399" if delta >= 0 else "#f87171"
+        if delta_suffix:
+            delta_text = f"{delta:+,.1f}{delta_suffix}"
+        else:
+            delta_text = f"{delta:+,.0f}"
+        delta_html = f'<div class="kpi-delta" style="color:{color}">{delta_text}</div>'
+    st.markdown(
+        f'<div class="kpi-card">'
+        f'<div class="kpi-label">{label}</div>'
+        f'<div class="kpi-value">{value}</div>'
+        f'{delta_html}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Sidebar controls
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
-    st.header("Dev World Radar")
+    st.markdown("<h2 style='margin:0;color:#f8fafc;font-weight:700;'>Dev World Radar</h2>", unsafe_allow_html=True)
     st.caption("Where the dev world is heading.")
 
     windows = data_loader.available_windows()
@@ -133,7 +238,11 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 
 if not data_loader.data_available():
-    st.title("Dev World Radar")
+    st.markdown(
+        '<div class="hero"><h1>Dev World Radar</h1>'
+        '<p>Real-time orientation of the open-source ecosystem.</p></div>',
+        unsafe_allow_html=True,
+    )
     st.warning(
         "Can't reach the analytics stack and no demo data is available.\n\n"
         "The dashboard reads the Iceberg Gold tables through the REST catalog "
@@ -159,17 +268,23 @@ viral = data_loader.load_viral_repos(window_type)
 trends = data_loader.load_tech_trends()
 is_demo = data_loader.demo_mode()
 
-st.title("Dev World Radar")
+# ---------------------------------------------------------------------------
+# Hero
+# ---------------------------------------------------------------------------
+
+st.markdown(
+    '<div class="hero"><h1>Dev World Radar</h1>'
+    '<p>Real-time orientation of the open-source ecosystem.</p></div>',
+    unsafe_allow_html=True,
+)
+
 if is_demo:
     st.markdown(
         '<div class="demo-banner">'
-        'Demo mode: showing realistic sample data. '
-        'Run the pipeline to replace this with live GitHub Archive results.'
+        'Demo mode: showing realistic sample data. Run the pipeline to replace this with live GitHub Archive results.'
         '</div>',
         unsafe_allow_html=True,
     )
-else:
-    st.caption("Live from the Gold Iceberg tables via pyiceberg — no Spark involved.")
 
 
 # ---------------------------------------------------------------------------
@@ -180,19 +295,26 @@ if not macro.empty:
     latest = macro.iloc[-1]
     prev = macro.iloc[-2] if len(macro) > 1 else None
 
-    def _delta(row, prev_row, col, suffix=""):
-        if prev_row is None:
-            return None
-        diff = row[col] - prev_row[col]
-        return f"{diff:+,.1f}{suffix}" if suffix else f"{diff:+,.0f}"
+    kpi_cols = st.columns(6)
+    with kpi_cols[0]:
+        _kpi_card("Total events", f"{int(latest['total_events']):,}",
+                  latest['total_events'] - prev['total_events'] if prev is not None else None)
+    with kpi_cols[1]:
+        _kpi_card("Stars", f"{int(latest['total_stars']):,}",
+                  latest['total_stars'] - prev['total_stars'] if prev is not None else None)
+    with kpi_cols[2]:
+        _kpi_card("Forks", f"{int(latest['total_forks']):,}",
+                  latest['total_forks'] - prev['total_forks'] if prev is not None else None)
+    with kpi_cols[3]:
+        _kpi_card("PR merge rate", f"{latest['pr_merge_rate']:.1f}%",
+                  (latest['pr_merge_rate'] - prev['pr_merge_rate']) if prev is not None else None,
+                  delta_suffix=" pp")
+    with kpi_cols[4]:
+        _kpi_card("Active contributors", f"{int(latest['distinct_active_contributors']):,}",
+                  latest['distinct_active_contributors'] - prev['distinct_active_contributors'] if prev is not None else None)
+    with kpi_cols[5]:
+        _kpi_card("Top language", str(latest["top_language"]))
 
-    kpi = st.columns(6)
-    kpi[0].metric("Total events", f"{int(latest['total_events']):,}", _delta(latest, prev, "total_events"))
-    kpi[1].metric("Stars", f"{int(latest['total_stars']):,}", _delta(latest, prev, "total_stars"))
-    kpi[2].metric("Forks", f"{int(latest['total_forks']):,}", _delta(latest, prev, "total_forks"))
-    kpi[3].metric("PR merge rate", f"{latest['pr_merge_rate']:.1f}%", _delta(latest, prev, "pr_merge_rate", " pp"))
-    kpi[4].metric("Active contributors", f"{int(latest['distinct_active_contributors']):,}", _delta(latest, prev, "distinct_active_contributors"))
-    kpi[5].metric("Top language", str(latest["top_language"]))
     st.caption(
         f"Analysis date {latest['analysis_date']:%Y-%m-%d} · "
         f"period {latest['period_start']:%Y-%m-%d} → {latest['period_end']:%Y-%m-%d} · "
@@ -229,11 +351,20 @@ with tab_repos:
         fig = px.bar(
             current.sort_values("virality_score"),
             x="virality_score", y="repo_name", orientation="h",
-            color="virality_score", color_continuous_scale="Viridis",
+            color="virality_score", color_continuous_scale="Tealgrn",
             labels={"virality_score": "Virality score", "repo_name": ""},
             hover_data={"star_count": True, "fork_count": True, "star_velocity": ":.1f"},
         )
-        fig.update_layout(coloraxis_showscale=False, height=max(360, 34 * len(current)))
+        fig.update_layout(
+            coloraxis_showscale=False,
+            height=max(380, 38 * len(current)),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#cbd5e1"),
+            xaxis=dict(gridcolor="rgba(148,163,184,0.15)"),
+            yaxis=dict(gridcolor="rgba(148,163,184,0.15)"),
+            margin=dict(l=10, r=10, t=10, b=10),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(
@@ -276,12 +407,32 @@ with tab_stack:
                 color="event_share_pct", color_continuous_scale="Blues",
                 labels={"event_share_pct": "Share of events (%)", "repo_language": ""},
             )
-            fig.update_layout(coloraxis_showscale=False, height=520)
+            fig.update_layout(
+                coloraxis_showscale=False,
+                height=540,
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#cbd5e1"),
+                xaxis=dict(gridcolor="rgba(148,163,184,0.15)"),
+                yaxis=dict(gridcolor="rgba(148,163,184,0.15)"),
+                margin=dict(l=10, r=10, t=10, b=10),
+            )
             st.plotly_chart(fig, use_container_width=True)
         with pie_col:
-            fig = px.pie(top15, names="repo_language", values="event_share_pct", hole=0.5)
-            fig.update_traces(textposition="inside", textinfo="percent")
-            fig.update_layout(height=520)
+            fig = px.pie(
+                top15, names="repo_language", values="event_share_pct", hole=0.55,
+                color_discrete_sequence=px.colors.sequential.Plasma_r,
+            )
+            fig.update_traces(textposition="inside", textinfo="percent", textfont_color="#f8fafc")
+            fig.update_layout(
+                height=540,
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#cbd5e1"),
+                showlegend=False,
+                margin=dict(l=10, r=10, t=30, b=10),
+                annotations=[dict(text="Languages", x=0.5, y=0.5, font_size=14, font_color="#94a3b8", showarrow=False)],
+            )
             st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Per-language activity")
@@ -308,7 +459,6 @@ with tab_stack:
 # ---- Tab C: Dev World Orientation -----------------------------------------
 
 with tab_orientation:
-    # ---- Language momentum: latest vs previous analysis_date ----
     dates = sorted(trends["analysis_date"].drop_duplicates()) if not trends.empty else []
     delta_df = pd.DataFrame()
 
@@ -340,31 +490,49 @@ with tab_orientation:
             if rising.empty:
                 st.caption("No languages gained share in this period.")
             else:
-                fig = px.bar(
-                    rising.sort_values("share_delta"),
-                    x="share_delta", y="repo_language", orientation="h",
-                    color_discrete_sequence=["#26a69a"],
-                    labels={"share_delta": "Δ event share (pp)", "repo_language": ""},
+                fig = go.Figure()
+                fig.add_trace(go.Bar(
+                    x=rising["share_delta"],
+                    y=rising["repo_language"],
+                    orientation="h",
+                    marker_color="#34d399",
+                ))
+                fig.update_layout(
+                    height=max(320, 36 * len(rising)),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#cbd5e1"),
+                    xaxis=dict(title="Δ event share (pp)", gridcolor="rgba(148,163,184,0.15)"),
+                    yaxis=dict(gridcolor="rgba(148,163,184,0.15)"),
+                    margin=dict(l=10, r=10, t=10, b=10),
                 )
-                fig.update_layout(height=max(300, 32 * len(rising)))
                 st.plotly_chart(fig, use_container_width=True)
         with cool_col:
             st.markdown("##### Cooling")
             if cooling.empty:
                 st.caption("No languages lost share in this period.")
             else:
-                fig = px.bar(
-                    cooling.sort_values("share_delta", ascending=False),
-                    x="share_delta", y="repo_language", orientation="h",
-                    color_discrete_sequence=["#ef5350"],
-                    labels={"share_delta": "Δ event share (pp)", "repo_language": ""},
+                fig = go.Figure()
+                fig.add_trace(go.Bar(
+                    x=cooling["share_delta"],
+                    y=cooling["repo_language"],
+                    orientation="h",
+                    marker_color="#f87171",
+                ))
+                fig.update_layout(
+                    height=max(320, 36 * len(cooling)),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#cbd5e1"),
+                    xaxis=dict(title="Δ event share (pp)", gridcolor="rgba(148,163,184,0.15)"),
+                    yaxis=dict(gridcolor="rgba(148,163,184,0.15)"),
+                    margin=dict(l=10, r=10, t=10, b=10),
                 )
-                fig.update_layout(height=max(300, 32 * len(cooling)))
                 st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
 
-    # ---- Fastest growing repos (star velocity in the latest viral window) ----
+    # ---- Fastest growing repos ----
     st.subheader(f"Fastest growing repos — latest '{window_type}' window")
     if viral.empty:
         st.info(f"No viral repo data for the '{window_type}' window yet.")
@@ -395,10 +563,10 @@ with tab_orientation:
 
     st.divider()
 
-    # ---- AI Analyst briefing (Groq, optional) ----
+    # ---- AI Analyst briefing ----
     st.subheader("AI Analyst briefing")
     if insights.groq_available():
-        if st.button("Generate AI briefing", type="primary"):
+        if st.button("Generate AI briefing", type="primary", use_container_width=True):
             with st.spinner("The AI analyst is reading the radar..."):
                 if viral.empty:
                     top_repos_md = "(no data)"
